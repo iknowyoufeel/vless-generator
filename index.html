@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLESS Link Generator</title>
+    <style>
+        :root { --bg-color: #0f172a; --container-bg: #1e293b; --text-color: #f8fafc; --input-bg: #334155; --border-color: #475569; --primary-color: #3b82f6; --primary-hover: #2563eb; --success-color: #10b981; --warning-color: #f59e0b; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background-color: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); width: 100%; max-width: 500px; }
+        h2 { text-align: center; margin-top: 0; margin-bottom: 25px; color: var(--primary-color); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500; }
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); box-sizing: border-box; font-family: monospace; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); }
+        input:disabled, select:disabled { opacity: 0.6; cursor: not-allowed; }
+        .row { display: flex; gap: 15px; }
+        .row .form-group { flex: 1; }
+        .proxy-section { background-color: #283548; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .proxy-section h4 { margin: 0 0 15px 0; color: var(--warning-color); font-size: 14px; text-transform: uppercase; letter-spacing: 1px;}
+        button { width: 100%; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
+        button:hover { background-color: var(--primary-hover); }
+        .result-box { margin-top: 25px; display: none; }
+        .result-box h3 { margin-top: 0; font-size: 16px; color: var(--success-color); }
+        textarea { width: 100%; height: 100px; padding: 10px; background-color: #000; color: #0f0; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-family: monospace; resize: vertical; word-break: break-all; }
+        .copy-btn { background-color: var(--success-color); margin-top: 10px; }
+        .copy-btn:hover { background-color: #059669; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>VLESS Link Generator</h2>
+
+        <div class="form-group">
+            <label for="remarks">Remarks (Nama Akun)</label>
+            <input type="text" id="remarks" placeholder="Contoh: SG-Premium" value="VLESS-Server">
+        </div>
+
+        <div class="form-group">
+            <label for="uuid">UUID</label>
+            <input type="text" id="uuid" placeholder="Masukkan UUID" required>
+        </div>
+
+        <div class="proxy-section">
+            <h4>🌐 Database Proxy Aktif</h4>
+            <div class="row">
+                <div class="form-group">
+                    <label for="countrySelect">Pilih Negara</label>
+                    <select id="countrySelect">
+                        <option value="">Memuat data...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="proxySelect">Pilih IP:Port</label>
+                    <select id="proxySelect" disabled>
+                        <option value="">Pilih Negara Dulu</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label for="address">Address (IP/Domain)</label>
+                <input type="text" id="address" placeholder="Otomatis terisi dari proxy" required>
+            </div>
+            <div class="form-group">
+                <label for="port">Port</label>
+                <input type="number" id="port" placeholder="443" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label for="network">Network (Type)</label>
+                <select id="network">
+                    <option value="ws">WebSocket (ws)</option>
+                    <option value="tcp">TCP</option>
+                    <option value="grpc">gRPC</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="security">Security (TLS)</label>
+                <select id="security">
+                    <option value="tls">TLS</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="path">Path / ServiceName</label>
+            <input type="text" id="path" placeholder="/vless-ws" value="/">
+        </div>
+
+        <div class="form-group">
+            <label for="sni">SNI (Server Name Indication)</label>
+            <input type="text" id="sni" placeholder="bug.domain.com" value="bug.domain.com">
+        </div>
+
+        <button onclick="generateVless()">Buat Tautan VLESS</button>
+
+        <div class="result-box" id="resultBox">
+            <h3>Tautan Berhasil Dibuat!</h3>
+            <textarea id="vlessOutput" readonly></textarea>
+            <button class="copy-btn" onclick="copyToClipboard()">Salin Tautan</button>
+        </div>
+    </div>
+
+    <script>
+        let proxyData = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('uuid').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+
+            fetch('kvProxyList.json')
+                .then(response => {
+                    if (!response.ok) throw new Error('File JSON tidak ditemukan');
+                    return response.json();
+                })
+                .then(data => {
+                    proxyData = data;
+                    populateCountries();
+                })
+                .catch(error => {
+                    console.log('Error:', error);
+                    document.getElementById('countrySelect').innerHTML = '<option value="">Gagal memuat proxy</option>';
+                });
+        });
+
+        function populateCountries() {
+            const countrySelect = document.getElementById('countrySelect');
+            countrySelect.innerHTML = '<option value="">-- Pilih Negara --</option>';
+            
+            const countries = Object.keys(proxyData).sort();
+            
+            countries.forEach(country => {
+                const totalProxy = proxyData[country].length;
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = `${country} (${totalProxy} Proxy)`;
+                countrySelect.appendChild(option);
+            });
+
+            countrySelect.addEventListener('change', function() {
+                const proxySelect = document.getElementById('proxySelect');
+                const selectedCountry = this.value;
+
+                if (selectedCountry) {
+                    proxySelect.disabled = false;
+                    proxySelect.innerHTML = '<option value="">-- Pilih IP:Port --</option>';
+                    
+                    proxyData[selectedCountry].forEach(proxy => {
+                        const option = document.createElement('option');
+                        option.value = proxy;
+                        option.textContent = proxy;
+                        proxySelect.appendChild(option);
+                    });
+                } else {
+                    proxySelect.disabled = true;
+                    proxySelect.innerHTML = '<option value="">Pilih Negara Dulu</option>';
+                    document.getElementById('address').value = '';
+                    document.getElementById('port').value = '';
+                }
+            });
+        }
+
+        document.getElementById('proxySelect').addEventListener('change', function() {
+            const selectedProxy = this.value; 
+            if (selectedProxy) {
+                const parts = selectedProxy.split(':');
+                document.getElementById('address').value = parts[0]; 
+                document.getElementById('port').value = parts[1];    
+            }
+        });
+
+        function generateVless() {
+            const uuid = document.getElementById('uuid').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const port = document.getElementById('port').value.trim();
+            const network = document.getElementById('network').value;
+            const security = document.getElementById('security').value;
+            const path = encodeURIComponent(document.getElementById('path').value.trim());
+            const sni = document.getElementById('sni').value.trim();
+            const remarks = encodeURIComponent(document.getElementById('remarks').value.trim());
+
+            if (!uuid || !address || !port) { alert("UUID, Address, dan Port tidak boleh kosong!"); return; }
+
+            let link = `vless://${uuid}@${address}:${port}?type=${network}&security=${security}`;
+
+            if (path && path !== '%2F') {
+                if (network === 'grpc') { link += `&serviceName=${path}`; } 
+                else { link += `&path=${path}`; }
+            }
+
+            if (sni) { link += `&sni=${sni}&host=${sni}`; }
+            link += `#${remarks}`;
+
+            document.getElementById('vlessOutput').value = link;
+            document.getElementById('resultBox').style.display = 'block';
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('vlessOutput');
+            output.select(); output.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(output.value).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.innerText;
+                btn.innerText = "Tersalin!";
+                setTimeout(() => { btn.innerText = originalText; }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
