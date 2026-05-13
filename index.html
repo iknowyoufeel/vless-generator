@@ -65,11 +65,11 @@
         <div class="row">
             <div class="form-group" style="flex: 2;">
                 <label for="address">Address (IP/Domain)</label>
-                <input type="text" id="address" placeholder="Otomatis terisi" required>
+                <input type="text" id="address" placeholder="Isi domain/IP secara manual" required>
             </div>
             <div class="form-group" style="flex: 1;">
                 <label for="port">Port</label>
-                <input type="number" id="port" placeholder="443" required>
+                <input type="number" id="port" placeholder="443" value="443" required>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
 
         <div class="form-group">
             <label for="path">Path / ServiceName</label>
-            <input type="text" id="path" placeholder="/vless-ws" value="/">
+            <input type="text" id="path" placeholder="Otomatis diisi dari proxy" value="/">
         </div>
 
         <div class="form-group">
@@ -167,34 +167,41 @@
                 } else {
                     proxySelect.disabled = true;
                     proxySelect.innerHTML = '<option value="">Pilih Negara Dulu</option>';
-                    document.getElementById('address').value = '';
-                    document.getElementById('port').value = '';
+                    document.getElementById('path').value = '/';
                 }
             });
         }
 
+        // PERUBAHAN: Saat proxy dipilih, masukkan ke Path, Address & Port abaikan
         document.getElementById('proxySelect').addEventListener('change', function() {
             const selectedProxy = this.value; 
             if (selectedProxy) {
-                const parts = selectedProxy.split(':');
-                document.getElementById('address').value = parts[0]; 
-                document.getElementById('port').value = parts[1];    
+                // Otomatis mengisi path dengan /ip:port
+                document.getElementById('path').value = '/' + selectedProxy; 
+            } else {
+                document.getElementById('path').value = '/';
             }
         });
 
-        // Fitur Cek Proxy
+        // PERUBAHAN: Cek proxy membaca langsung dari pilihan dropdown
         function checkProxy() {
-            const ip = document.getElementById('address').value.trim();
-            const port = document.getElementById('port').value.trim();
+            const selectedProxy = document.getElementById('proxySelect').value;
             
-            if (!ip || !port) { 
-                alert("Harap pilih proxy dari database atau isi Address dan Port terlebih dahulu!"); 
-                return; 
+            if (selectedProxy) {
+                const parts = selectedProxy.split(':');
+                const checkUrl = `https://tcp.ping.pe/${parts[0]}:${parts[1]}`;
+                window.open(checkUrl, '_blank');
+            } else {
+                // Fallback jika tidak ada proxy dari JSON yang dipilih
+                const ip = document.getElementById('address').value.trim();
+                const port = document.getElementById('port').value.trim();
+                if (!ip || !port) { 
+                    alert("Pilih proxy dari database terlebih dahulu!"); 
+                    return; 
+                }
+                const checkUrl = `https://tcp.ping.pe/${ip}:${port}`;
+                window.open(checkUrl, '_blank');
             }
-            
-            // Membuka tab baru ke ping.pe untuk mengecek TCP Port
-            const checkUrl = `https://tcp.ping.pe/${ip}:${port}`;
-            window.open(checkUrl, '_blank');
         }
 
         function generateVless() {
