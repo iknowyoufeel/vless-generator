@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VLESS Link Generator</title>
     <style>
-        :root { --bg-color: #0f172a; --container-bg: #1e293b; --text-color: #f8fafc; --input-bg: #334155; --border-color: #475569; --primary-color: #3b82f6; --primary-hover: #2563eb; --success-color: #10b981; --warning-color: #f59e0b; }
+        :root { --bg-color: #0f172a; --container-bg: #1e293b; --text-color: #f8fafc; --input-bg: #334155; --border-color: #475569; --primary-color: #3b82f6; --primary-hover: #2563eb; --success-color: #10b981; --warning-color: #f59e0b; --warning-hover: #d97706; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .container { background-color: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); width: 100%; max-width: 500px; }
         h2 { text-align: center; margin-top: 0; margin-bottom: 25px; color: var(--primary-color); }
@@ -20,6 +20,8 @@
         .proxy-section h4 { margin: 0 0 15px 0; color: var(--warning-color); font-size: 14px; text-transform: uppercase; letter-spacing: 1px;}
         button { width: 100%; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
         button:hover { background-color: var(--primary-hover); }
+        .btn-check { background-color: var(--warning-color); margin-top: -5px; margin-bottom: 15px; }
+        .btn-check:hover { background-color: var(--warning-hover); }
         .result-box { margin-top: 25px; display: none; }
         .result-box h3 { margin-top: 0; font-size: 16px; color: var(--success-color); }
         textarea { width: 100%; height: 100px; padding: 10px; background-color: #000; color: #0f0; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-family: monospace; resize: vertical; word-break: break-all; }
@@ -61,15 +63,17 @@
         </div>
 
         <div class="row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 2;">
                 <label for="address">Address (IP/Domain)</label>
-                <input type="text" id="address" placeholder="Otomatis terisi dari proxy" required>
+                <input type="text" id="address" placeholder="Otomatis terisi" required>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label for="port">Port</label>
                 <input type="number" id="port" placeholder="443" required>
             </div>
         </div>
+
+        <button type="button" class="btn-check" onclick="checkProxy()">🔍 Cek Status Proxy (Ping.pe)</button>
 
         <div class="row">
             <div class="form-group">
@@ -177,6 +181,21 @@
                 document.getElementById('port').value = parts[1];    
             }
         });
+
+        // Fitur Cek Proxy
+        function checkProxy() {
+            const ip = document.getElementById('address').value.trim();
+            const port = document.getElementById('port').value.trim();
+            
+            if (!ip || !port) { 
+                alert("Harap pilih proxy dari database atau isi Address dan Port terlebih dahulu!"); 
+                return; 
+            }
+            
+            // Membuka tab baru ke ping.pe untuk mengecek TCP Port
+            const checkUrl = `https://tcp.ping.pe/${ip}:${port}`;
+            window.open(checkUrl, '_blank');
+        }
 
         function generateVless() {
             const uuid = document.getElementById('uuid').value.trim();
