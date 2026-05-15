@@ -103,7 +103,7 @@
 
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
-                <h4>🛠 Clash Converter</h4>
+                <h4>🛠 Clash / CMFA Converter</h4>
                 <textarea id="clashInput" placeholder="Paste link vless:// disini" style="height: 100px;"></textarea>
             </div>
             <button class="btn-clash" onclick="convertToClash()">Convert ke Clash YAML</button>
@@ -114,8 +114,7 @@
                 <h4>🔍 Live Proxy Checker</h4>
                 <div class="form-group">
                     <label>URL API Vercel Anda</label>
-                    <input type="text" id="apiUrl" placeholder="https://api-kamu.vercel.app/api/check" value="">
-                    <small style="color: #94a3b8; font-size: 11px;">*Masukkan link deploy Vercel Anda di sini</small>
+                    <input type="text" id="apiUrl" placeholder="https://api-kamu.vercel.app/api/check" value="https://checkerproxy.vercel.app/api/check">
                 </div>
                 <button class="btn-check" id="btnMulaiCek" onclick="runChecker()">Mulai Cek Semua Proxy</button>
                 
@@ -166,6 +165,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Standar UUID V4 Variant 1
             document.getElementById('uuid').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
                 const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16);
             });
@@ -229,6 +229,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
+        // CMFA COMPATIBLE CLASH CONVERTER
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -236,8 +237,27 @@
             input.split('\n').forEach(link => {
                 try {
                     if(!link.startsWith('vless://')) return;
-                    const url = new URL(link.replace('#', '?remark=')); const params = new URLSearchParams(url.search);
-                    yaml += `  - name: "${decodeURIComponent(params.get('remark') || 'Proxy')}"\n    type: vless\n    server: ${url.hostname}\n    port: ${url.port || 443}\n    uuid: ${url.username}\n    udp: true\n    tls: true\n    sni: ${params.get('sni') || ''}\n    network: ws\n    ws-opts:\n      path: "${decodeURIComponent(params.get('path') || '/')}"\n      headers:\n        Host: ${params.get('host') || params.get('sni') || ''}\n`;
+                    const url = new URL(link.replace('#', '?remark=')); 
+                    const params = new URLSearchParams(url.search);
+                    const remark = decodeURIComponent(params.get('remark') || 'Proxy');
+                    const sniVal = params.get('sni') || '';
+                    const hostVal = params.get('host') || sniVal;
+                    
+                    yaml += `  - name: "${remark}"\n`;
+                    yaml += `    type: vless\n`;
+                    yaml += `    server: ${url.hostname}\n`;
+                    yaml += `    port: ${url.port || 443}\n`;
+                    yaml += `    uuid: ${url.username}\n`;
+                    yaml += `    udp: true\n`;
+                    yaml += `    tls: true\n`;
+                    yaml += `    sni: ${sniVal}\n`;
+                    yaml += `    servername: ${sniVal}\n`;
+                    yaml += `    client-fingerprint: chrome\n`;
+                    yaml += `    network: ws\n`;
+                    yaml += `    ws-opts:\n`;
+                    yaml += `      path: "${decodeURIComponent(params.get('path') || '/')}"\n`;
+                    yaml += `      headers:\n`;
+                    yaml += `        Host: ${hostVal}\n`;
                 } catch(e) {}
             });
             document.getElementById('vlessOutput').value = yaml; document.getElementById('resultBox').style.display = 'block';
@@ -253,7 +273,6 @@
             btn.disabled = true;
             btn.textContent = "Sedang Mengecek...";
 
-            // Render baris awal
             allProxiesFlat.forEach((p, i) => {
                 tbody.innerHTML += `<tr>
                     <td>${p.name} (${p.country})</td>
@@ -263,7 +282,6 @@
                 </tr>`;
             });
 
-            // Pecah menjadi grup berisi 10 proxy sesuai batasan API Anda
             for (let i = 0; i < allProxiesFlat.length; i += 10) {
                 const chunk = allProxiesFlat.slice(i, i + 10);
                 const ips = chunk.map(x => x.ipPort).join(',');
@@ -273,10 +291,8 @@
                     const dataArr = Array.isArray(data) ? data : [data];
                     
                     dataArr.forEach(resObj => {
-                        // Cari proxy di tabel yang cocok dengan hasil
                         const reqProxyFormat = `${resObj.proxy}:${resObj.port}`;
                         const idx = allProxiesFlat.findIndex(x => {
-                            // Antisipasi jika API memotong IP:Port
                             const full = x.ipPort.includes(':') ? x.ipPort : x.ipPort + ':443';
                             return full === reqProxyFormat;
                         });
