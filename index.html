@@ -54,7 +54,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="proxySelect">Pilih IP:Port</label>
+                    <label for="proxySelect">Pilih Provider</label>
                     <select id="proxySelect" disabled>
                         <option value="">Pilih Negara Dulu</option>
                     </select>
@@ -121,18 +121,41 @@
                 return v.toString(16);
             });
 
-            fetch('kvProxyList.json')
+            // Mengambil dan memproses file prolist.txt
+            fetch('prolist.txt')
                 .then(response => {
-                    if (!response.ok) throw new Error('File JSON tidak ditemukan');
-                    return response.json();
+                    if (!response.ok) throw new Error('File tidak ditemukan');
+                    return response.text();
                 })
-                .then(data => {
-                    proxyData = data;
+                .then(text => {
+                    const lines = text.split('\n');
+                    let currentCountry = '';
+                    
+                    lines.forEach(line => {
+                        line = line.trim();
+                        if (!line) return; // Lewati baris kosong
+                        
+                        // Deteksi kode negara (jika panjang baris maksimal 3 karakter tanpa spasi/titik)
+                        if (line.length <= 3 && !line.includes('.') && !line.includes(':')) {
+                            currentCountry = line;
+                            proxyData[currentCountry] = [];
+                        } else if (currentCountry) {
+                            // Memisahkan IP:Port dan Nama Proxy
+                            // Regex ini mengambil bagian pertama (IP:Port) dan sisa teks setelah spasi sebagai (Nama)
+                            const match = line.match(/^(\S+)\s+(.+)$/);
+                            if (match) {
+                                proxyData[currentCountry].push({
+                                    ipPort: match[1], // Contoh: 43.218.77.16:443
+                                    name: match[2]    // Contoh: Amazon.com
+                                });
+                            }
+                        }
+                    });
                     populateCountries();
                 })
                 .catch(error => {
                     console.log('Error:', error);
-                    document.getElementById('countrySelect').innerHTML = '<option value="">Gagal memuat proxy</option>';
+                    document.getElementById('countrySelect').innerHTML = '<option value="">Gagal memuat prolist.txt</option>';
                 });
         });
 
@@ -140,7 +163,7 @@
             const countrySelect = document.getElementById('countrySelect');
             countrySelect.innerHTML = '<option value="">-- Pilih Negara --</option>';
             
-            const countries = Object.keys(proxyData).sort();
+            const countries = Object.keys(proxyData);
             
             countries.forEach(country => {
                 const totalProxy = proxyData[country].length;
@@ -156,12 +179,12 @@
 
                 if (selectedCountry) {
                     proxySelect.disabled = false;
-                    proxySelect.innerHTML = '<option value="">-- Pilih IP:Port --</option>';
+                    proxySelect.innerHTML = '<option value="">-- Pilih Provider --</option>';
                     
                     proxyData[selectedCountry].forEach(proxy => {
                         const option = document.createElement('option');
-                        option.value = proxy;
-                        option.textContent = proxy;
+                        option.value = proxy.ipPort; // Nilai yang disisipkan ke Path adalah IP:Port
+                        option.textContent = proxy.name; // Teks yang dilihat pengguna adalah Nama Provider
                         proxySelect.appendChild(option);
                     });
                 } else {
@@ -172,18 +195,15 @@
             });
         }
 
-        // PERUBAHAN: Saat proxy dipilih, masukkan ke Path, Address & Port abaikan
         document.getElementById('proxySelect').addEventListener('change', function() {
             const selectedProxy = this.value; 
             if (selectedProxy) {
-                // Otomatis mengisi path dengan /ip:port
                 document.getElementById('path').value = '/' + selectedProxy; 
             } else {
                 document.getElementById('path').value = '/';
             }
         });
 
-        // PERUBAHAN: Cek proxy membaca langsung dari pilihan dropdown
         function checkProxy() {
             const selectedProxy = document.getElementById('proxySelect').value;
             
@@ -192,11 +212,10 @@
                 const checkUrl = `https://tcp.ping.pe/${parts[0]}:${parts[1]}`;
                 window.open(checkUrl, '_blank');
             } else {
-                // Fallback jika tidak ada proxy dari JSON yang dipilih
                 const ip = document.getElementById('address').value.trim();
                 const port = document.getElementById('port').value.trim();
                 if (!ip || !port) { 
-                    alert("Pilih proxy dari database terlebih dahulu!"); 
+                    alert("Pilih provider dari database terlebih dahulu!"); 
                     return; 
                 }
                 const checkUrl = `https://tcp.ping.pe/${ip}:${port}`;

@@ -1,0 +1,8 @@
+ID
+43.218.77.16:443    Amazon.com
+103.6.207.108:8080  PT Pusat Media Indonesia
+36.95.152.58:12137  PT Telekomunikasi Indonesia
+SG
+47.74.254.191:8900  Alibaba
+138.2.89.238:43254  Oracle
+91.192.81.154:2053  Melbikomas
