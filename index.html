@@ -103,7 +103,7 @@
 
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
-                <h4>🛠 Clash / CMFA Converter</h4>
+                <h4>🛠 Clash Converter</h4>
                 <textarea id="clashInput" placeholder="Paste link vless:// disini" style="height: 100px;"></textarea>
             </div>
             <button class="btn-clash" onclick="convertToClash()">Convert ke Clash YAML</button>
@@ -147,16 +147,20 @@
         let proxyData = {};
         let allProxiesFlat = [];
 
+        // Tab Switching Logic
         function openTab(evt, tabName) {
             let i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
             for (i = 0; i < tabcontent.length; i++) tabcontent[i].classList.remove("active");
+            
             tablinks = document.getElementsByClassName("tab-btn");
             for (i = 0; i < tablinks.length; i++) tablinks[i].classList.remove("active");
+            
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
             document.getElementById('resultBox').style.display = 'none';
 
+            // Hide shared inputs for Convert and Checker tabs
             if (tabName === 'convert' || tabName === 'checker') {
                 document.getElementById('sharedInputs').style.display = 'none';
             } else {
@@ -167,9 +171,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Standar UUID V4 Variant 1
             document.getElementById('uuid').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16);
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); 
+                return v.toString(16);
             });
 
+            // Fetch prolist.txt
             fetch('prolist.txt').then(res => res.text()).then(text => {
                 const lines = text.split('\n');
                 let currentCountry = '';
@@ -189,6 +195,7 @@
             });
         });
 
+        // Populate Dropdowns
         function populateUi() {
             const countrySel = document.getElementById('countrySelect');
             countrySel.innerHTML = '<option value="">-- Pilih Negara --</option>';
@@ -229,7 +236,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // CMFA COMPATIBLE CLASH CONVERTER
+        // CMFA COMPATIBLE CLASH CONVERTER (Format Baru)
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -243,26 +250,27 @@
                     const sniVal = params.get('sni') || '';
                     const hostVal = params.get('host') || sniVal;
                     
-                    yaml += `  - name: "${remark}"\n`;
-                    yaml += `    type: vless\n`;
+                    yaml += `  - name: ${remark}\n`;
                     yaml += `    server: ${url.hostname}\n`;
                     yaml += `    port: ${url.port || 443}\n`;
+                    yaml += `    type: vless\n`;
                     yaml += `    uuid: ${url.username}\n`;
-                    yaml += `    udp: true\n`;
+                    yaml += `    cipher: none\n`;
                     yaml += `    tls: true\n`;
-                    yaml += `    sni: ${sniVal}\n`;
+                    yaml += `    skip-cert-verify: true\n`;
                     yaml += `    servername: ${sniVal}\n`;
-                    yaml += `    client-fingerprint: chrome\n`;
                     yaml += `    network: ws\n`;
                     yaml += `    ws-opts:\n`;
-                    yaml += `      path: "${decodeURIComponent(params.get('path') || '/')}"\n`;
+                    yaml += `      path: ${decodeURIComponent(params.get('path') || '/')}\n`;
                     yaml += `      headers:\n`;
                     yaml += `        Host: ${hostVal}\n`;
+                    yaml += `    udp: true\n`;
                 } catch(e) {}
             });
             document.getElementById('vlessOutput').value = yaml; document.getElementById('resultBox').style.display = 'block';
         }
 
+        // LIVE PROXY CHECKER
         async function runChecker() {
             const apiUrl = document.getElementById('apiUrl').value.trim();
             if(!apiUrl) return alert("Harap isi URL API Vercel Anda terlebih dahulu!");
@@ -273,6 +281,7 @@
             btn.disabled = true;
             btn.textContent = "Sedang Mengecek...";
 
+            // Render table placeholder
             allProxiesFlat.forEach((p, i) => {
                 tbody.innerHTML += `<tr>
                     <td>${p.name} (${p.country})</td>
@@ -282,6 +291,7 @@
                 </tr>`;
             });
 
+            // Batch processing: 10 proxies at a time
             for (let i = 0; i < allProxiesFlat.length; i += 10) {
                 const chunk = allProxiesFlat.slice(i, i + 10);
                 const ips = chunk.map(x => x.ipPort).join(',');
@@ -320,7 +330,10 @@
         }
 
         function copyToClipboard() {
-            const out = document.getElementById('vlessOutput'); out.select(); navigator.clipboard.writeText(out.value); alert("Salin Berhasil!");
+            const out = document.getElementById('vlessOutput'); 
+            out.select(); 
+            navigator.clipboard.writeText(out.value); 
+            alert("Salin Berhasil!");
         }
     </script>
 </body>
