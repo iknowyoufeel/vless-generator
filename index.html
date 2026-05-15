@@ -11,7 +11,7 @@
             --primary-hover: #2563eb; --success-color: #10b981; --warning-color: #f59e0b; 
             --accent-color: #8b5cf6; --clash-color: #fb7185; --table-bg: #1e293b;
         }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; }
         .container { background-color: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); width: 100%; max-width: 600px; }
         
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; overflow-x: auto; }
@@ -50,6 +50,10 @@
         .status-aktif { color: var(--success-color); font-weight: bold; }
         .status-mati { color: var(--clash-color); font-weight: bold; }
         .status-pending { color: var(--text-color); font-style: italic; }
+
+        /* Footer Credit */
+        .footer-credit { margin-top: 20px; font-size: 13px; color: #94a3b8; text-align: center; }
+        .footer-credit span { color: var(--primary-color); font-weight: bold; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -71,8 +75,8 @@
             </div>
             <div class="row">
                 <div class="form-group" style="flex: 2;">
-                    <label>Address (Worker Domain)</label>
-                    <input type="text" id="address" value="contoh.pages.dev">
+                    <label>Address</label>
+                    <input type="text" id="address" placeholder="Isi Bug Jika Mode WS" value="">
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>Port</label>
@@ -89,14 +93,20 @@
                     <div class="form-group"><label>Provider</label><select id="proxySelect" disabled><option>Pilih Negara</option></select></div>
                 </div>
             </div>
-            <div class="form-group"><label>Bug / SNI</label><input type="text" id="sni" value="m.youtube.com"></div>
+            <div class="form-group">
+                <label>SNI</label>
+                <input type="text" id="sni" placeholder="Isi Bug Jika Mode SNI" value="">
+            </div>
             <button onclick="generateSingle()">Buat Satu Link</button>
         </div>
 
         <div id="sublink" class="tab-content">
             <div class="section-box" style="border-color: var(--accent-color);">
                 <h4>🚀 Bulk Generator</h4>
-                <div class="form-group"><label>Bug / SNI</label><input type="text" id="sublinkBug" value="m.youtube.com"></div>
+                <div class="form-group">
+                    <label>SNI untuk Semua</label>
+                    <input type="text" id="sublinkBug" placeholder="Isi Bug Jika Mode SNI" value="">
+                </div>
             </div>
             <button class="btn-sublink" onclick="generateAllSublinks()">Buat Semua Sublink</button>
         </div>
@@ -141,6 +151,10 @@
             <textarea id="vlessOutput" class="output-area" readonly></textarea>
             <button style="background-color: var(--success-color); margin-top: 10px;" onclick="copyToClipboard()">Salin Hasil</button>
         </div>
+    </div>
+
+    <div class="footer-credit">
+        Created by <span>Orionx</span>
     </div>
 
     <script>
@@ -224,19 +238,30 @@
 
         function generateSingle() {
             const path = document.getElementById('proxySelect').value;
+            const addr = document.getElementById('address').value.trim();
+            const sni = document.getElementById('sni').value.trim();
+            
             if (!path) return alert("Pilih proxy!");
-            const link = buildVlessLink(document.getElementById('uuid').value, document.getElementById('address').value, document.getElementById('port').value, path, document.getElementById('sni').value, document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text);
+            if (!addr) return alert("Address tidak boleh kosong!");
+            
+            const link = buildVlessLink(document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text);
             document.getElementById('vlessOutput').value = link; document.getElementById('resultBox').style.display = 'block';
         }
 
         function generateAllSublinks() {
             let res = [];
-            const uuid = document.getElementById('uuid').value, addr = document.getElementById('address').value, port = document.getElementById('port').value, bug = document.getElementById('sublinkBug').value;
+            const uuid = document.getElementById('uuid').value;
+            const addr = document.getElementById('address').value.trim();
+            const port = document.getElementById('port').value;
+            const bug = document.getElementById('sublinkBug').value.trim();
+            
+            if (!addr) return alert("Address tidak boleh kosong!");
+
             allProxiesFlat.forEach(p => { res.push(buildVlessLink(uuid, addr, port, p.ipPort, bug, `${p.country}-${p.name}`)); });
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // CMFA COMPATIBLE CLASH CONVERTER (Format Baru)
+        // CMFA COMPATIBLE CLASH CONVERTER
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -281,7 +306,6 @@
             btn.disabled = true;
             btn.textContent = "Sedang Mengecek...";
 
-            // Render table placeholder
             allProxiesFlat.forEach((p, i) => {
                 tbody.innerHTML += `<tr>
                     <td>${p.name} (${p.country})</td>
@@ -291,7 +315,6 @@
                 </tr>`;
             });
 
-            // Batch processing: 10 proxies at a time
             for (let i = 0; i < allProxiesFlat.length; i += 10) {
                 const chunk = allProxiesFlat.slice(i, i + 10);
                 const ips = chunk.map(x => x.ipPort).join(',');
