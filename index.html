@@ -9,12 +9,11 @@
             --bg-color: #0f172a; --container-bg: #1e293b; --text-color: #f8fafc; 
             --input-bg: #334155; --border-color: #475569; --primary-color: #3b82f6; 
             --primary-hover: #2563eb; --success-color: #10b981; --warning-color: #f59e0b; 
-            --accent-color: #8b5cf6; --clash-color: #fb7185;
+            --accent-color: #8b5cf6; --clash-color: #fb7185; --table-bg: #1e293b;
         }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .container { background-color: var(--container-bg); padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); width: 100%; max-width: 600px; }
         
-        /* Tab Styling */
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; overflow-x: auto; }
         .tab-btn { background: none; border: none; color: var(--text-color); padding: 10px 15px; cursor: pointer; font-weight: bold; border-radius: 6px; transition: 0.3s; white-space: nowrap; font-size: 13px; }
         .tab-btn.active { background-color: var(--primary-color); color: white; }
@@ -38,11 +37,19 @@
         
         .btn-sublink { background-color: var(--accent-color); }
         .btn-clash { background-color: var(--clash-color); }
-        .btn-clash:hover { background-color: #e11d48; }
+        .btn-check { background-color: var(--warning-color); }
 
         .result-box { margin-top: 25px; display: none; }
         .output-area { width: 100%; height: 180px; background-color: #000; color: #0f0; font-size: 11px; margin-top: 10px; }
-        .copy-btn { background-color: var(--success-color); margin-top: 10px; }
+        
+        /* Table Styles */
+        .table-container { width: 100%; max-height: 300px; overflow-y: auto; margin-top: 15px; border-radius: 6px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #1e293b; position: sticky; top: 0; }
+        .status-aktif { color: var(--success-color); font-weight: bold; }
+        .status-mati { color: var(--clash-color); font-weight: bold; }
+        .status-pending { color: var(--text-color); font-style: italic; }
     </style>
 </head>
 <body>
@@ -51,24 +58,26 @@
         <h2>VLESS Web Tool</h2>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="openTab(event, 'single')">Single Link</button>
+            <button class="tab-btn active" onclick="openTab(event, 'single')">Single</button>
             <button class="tab-btn" onclick="openTab(event, 'sublink')">Sublink</button>
-            <button class="tab-btn" onclick="openTab(event, 'convert')">Convert to Clash</button>
+            <button class="tab-btn" onclick="openTab(event, 'convert')">Clash</button>
+            <button class="tab-btn" onclick="openTab(event, 'checker')">Cek Proxy</button>
         </div>
 
-        <div class="form-group">
-            <label>User UUID</label>
-            <input type="text" id="uuid" placeholder="Loading...">
-        </div>
-
-        <div class="row">
-            <div class="form-group" style="flex: 2;">
-                <label>Address (Worker Domain)</label>
-                <input type="text" id="address" value="contoh.pages.dev">
+        <div id="sharedInputs">
+            <div class="form-group">
+                <label>User UUID</label>
+                <input type="text" id="uuid" placeholder="Loading...">
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label>Port</label>
-                <input type="number" id="port" value="443">
+            <div class="row">
+                <div class="form-group" style="flex: 2;">
+                    <label>Address (Worker Domain)</label>
+                    <input type="text" id="address" value="contoh.pages.dev">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Port</label>
+                    <input type="number" id="port" value="443">
+                </div>
             </div>
         </div>
 
@@ -76,54 +85,68 @@
             <div class="section-box">
                 <h4>🌐 Pilih Proxy</h4>
                 <div class="row">
-                    <div class="form-group">
-                        <label>Negara</label>
-                        <select id="countrySelect"><option>Loading...</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Provider</label>
-                        <select id="proxySelect" disabled><option>Pilih Negara</option></select>
-                    </div>
+                    <div class="form-group"><label>Negara</label><select id="countrySelect"><option>Loading...</option></select></div>
+                    <div class="form-group"><label>Provider</label><select id="proxySelect" disabled><option>Pilih Negara</option></select></div>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Bug / SNI</label>
-                <input type="text" id="sni" value="m.youtube.com">
-            </div>
+            <div class="form-group"><label>Bug / SNI</label><input type="text" id="sni" value="m.youtube.com"></div>
             <button onclick="generateSingle()">Buat Satu Link</button>
         </div>
 
         <div id="sublink" class="tab-content">
             <div class="section-box" style="border-color: var(--accent-color);">
                 <h4>🚀 Bulk Generator</h4>
-                <div class="form-group">
-                    <label>Bug / SNI untuk Semua</label>
-                    <input type="text" id="sublinkBug" value="m.youtube.com">
-                </div>
+                <div class="form-group"><label>Bug / SNI</label><input type="text" id="sublinkBug" value="m.youtube.com"></div>
             </div>
             <button class="btn-sublink" onclick="generateAllSublinks()">Buat Semua Sublink</button>
         </div>
 
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
-                <h4>🛠 Clash / CMFA Converter</h4>
-                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
-                    Paste link VLESS (vless://...) di bawah ini untuk mengubahnya menjadi format YAML Clash.
-                </p>
-                <textarea id="clashInput" placeholder="vless://xxxx&#10;vless://yyyy" style="height: 100px;"></textarea>
+                <h4>🛠 Clash Converter</h4>
+                <textarea id="clashInput" placeholder="Paste link vless:// disini" style="height: 100px;"></textarea>
             </div>
             <button class="btn-clash" onclick="convertToClash()">Convert ke Clash YAML</button>
+        </div>
+
+        <div id="checker" class="tab-content">
+            <div class="section-box" style="border-color: var(--warning-color);">
+                <h4>🔍 Live Proxy Checker</h4>
+                <div class="form-group">
+                    <label>URL API Vercel Anda</label>
+                    <input type="text" id="apiUrl" placeholder="https://api-kamu.vercel.app/api/check" value="">
+                    <small style="color: #94a3b8; font-size: 11px;">*Masukkan link deploy Vercel Anda di sini</small>
+                </div>
+                <button class="btn-check" id="btnMulaiCek" onclick="runChecker()">Mulai Cek Semua Proxy</button>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Prov/Negara</th>
+                                <th>IP:Port</th>
+                                <th>Status</th>
+                                <th>Delay</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checkerBody">
+                            <tr><td colspan="4" style="text-align:center;">Tekan tombol untuk memulai</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div class="result-box" id="resultBox">
             <h3 id="resultTitle" style="font-size: 15px; color: var(--success-color);">Hasil Konfigurasi:</h3>
             <textarea id="vlessOutput" class="output-area" readonly></textarea>
-            <button class="copy-btn" onclick="copyToClipboard()">Salin Hasil</button>
+            <button style="background-color: var(--success-color); margin-top: 10px;" onclick="copyToClipboard()">Salin Hasil</button>
         </div>
     </div>
 
     <script>
         let proxyData = {};
+        let allProxiesFlat = [];
 
         function openTab(evt, tabName) {
             let i, tabcontent, tablinks;
@@ -134,17 +157,19 @@
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
             document.getElementById('resultBox').style.display = 'none';
+
+            if (tabName === 'convert' || tabName === 'checker') {
+                document.getElementById('sharedInputs').style.display = 'none';
+            } else {
+                document.getElementById('sharedInputs').style.display = 'block';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Generate UUID (Dikembalikan ke standar awal)
             document.getElementById('uuid').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                const r = Math.random() * 16 | 0;
-                const v = c == 'x' ? r : (r & 0x3 | 0x8); 
-                return v.toString(16);
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16);
             });
 
-            // Load prolist.txt
             fetch('prolist.txt').then(res => res.text()).then(text => {
                 const lines = text.split('\n');
                 let currentCountry = '';
@@ -154,7 +179,10 @@
                         if(line) { currentCountry = line; proxyData[currentCountry] = []; }
                     } else if (currentCountry) {
                         const match = line.match(/^(\S+)\s+(.+)$/);
-                        if (match) proxyData[currentCountry].push({ ipPort: match[1], name: match[2] });
+                        if (match) {
+                            proxyData[currentCountry].push({ ipPort: match[1], name: match[2] });
+                            allProxiesFlat.push({ country: currentCountry, ipPort: match[1], name: match[2] });
+                        }
                     }
                 });
                 populateUi();
@@ -190,68 +218,93 @@
         function generateSingle() {
             const path = document.getElementById('proxySelect').value;
             if (!path) return alert("Pilih proxy!");
-            const link = buildVlessLink(
-                document.getElementById('uuid').value, document.getElementById('address').value,
-                document.getElementById('port').value, path, document.getElementById('sni').value,
-                document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text
-            );
-            document.getElementById('vlessOutput').value = link;
-            document.getElementById('resultBox').style.display = 'block';
+            const link = buildVlessLink(document.getElementById('uuid').value, document.getElementById('address').value, document.getElementById('port').value, path, document.getElementById('sni').value, document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text);
+            document.getElementById('vlessOutput').value = link; document.getElementById('resultBox').style.display = 'block';
         }
 
         function generateAllSublinks() {
             let res = [];
-            const uuid = document.getElementById('uuid').value, addr = document.getElementById('address').value,
-                  port = document.getElementById('port').value, bug = document.getElementById('sublinkBug').value;
-            Object.keys(proxyData).forEach(c => {
-                proxyData[c].forEach(p => {
-                    res.push(buildVlessLink(uuid, addr, port, p.ipPort, bug, `${c}-${p.name}`));
-                });
-            });
-            document.getElementById('vlessOutput').value = res.join('\n');
-            document.getElementById('resultBox').style.display = 'block';
+            const uuid = document.getElementById('uuid').value, addr = document.getElementById('address').value, port = document.getElementById('port').value, bug = document.getElementById('sublinkBug').value;
+            allProxiesFlat.forEach(p => { res.push(buildVlessLink(uuid, addr, port, p.ipPort, bug, `${p.country}-${p.name}`)); });
+            document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // --- CLASH CONVERTER LOGIC ---
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
-            
-            const links = input.split('\n');
             let yaml = "proxies:\n";
-            
-            links.forEach(link => {
+            input.split('\n').forEach(link => {
                 try {
                     if(!link.startsWith('vless://')) return;
-                    const url = new URL(link.replace('#', '?remark='));
-                    const params = new URLSearchParams(url.search);
-                    const remark = decodeURIComponent(params.get('remark') || 'VLESS-Proxy');
-                    
-                    yaml += `  - name: "${remark}"\n`;
-                    yaml += `    type: vless\n`;
-                    yaml += `    server: ${url.hostname}\n`;
-                    yaml += `    port: ${url.port || 443}\n`;
-                    yaml += `    uuid: ${url.username}\n`;
-                    yaml += `    udp: true\n`;
-                    yaml += `    tls: true\n`;
-                    yaml += `    sni: ${params.get('sni') || ''}\n`;
-                    yaml += `    network: ws\n`;
-                    yaml += `    ws-opts:\n`;
-                    yaml += `      path: "${decodeURIComponent(params.get('path') || '/')}"\n`;
-                    yaml += `      headers:\n`;
-                    yaml += `        Host: ${params.get('host') || params.get('sni') || ''}\n`;
-                } catch(e) { console.error("Link error:", link); }
+                    const url = new URL(link.replace('#', '?remark=')); const params = new URLSearchParams(url.search);
+                    yaml += `  - name: "${decodeURIComponent(params.get('remark') || 'Proxy')}"\n    type: vless\n    server: ${url.hostname}\n    port: ${url.port || 443}\n    uuid: ${url.username}\n    udp: true\n    tls: true\n    sni: ${params.get('sni') || ''}\n    network: ws\n    ws-opts:\n      path: "${decodeURIComponent(params.get('path') || '/')}"\n      headers:\n        Host: ${params.get('host') || params.get('sni') || ''}\n`;
+                } catch(e) {}
+            });
+            document.getElementById('vlessOutput').value = yaml; document.getElementById('resultBox').style.display = 'block';
+        }
+
+        async function runChecker() {
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            if(!apiUrl) return alert("Harap isi URL API Vercel Anda terlebih dahulu!");
+
+            const tbody = document.getElementById('checkerBody');
+            const btn = document.getElementById('btnMulaiCek');
+            tbody.innerHTML = '';
+            btn.disabled = true;
+            btn.textContent = "Sedang Mengecek...";
+
+            // Render baris awal
+            allProxiesFlat.forEach((p, i) => {
+                tbody.innerHTML += `<tr>
+                    <td>${p.name} (${p.country})</td>
+                    <td style="font-size: 10px;">${p.ipPort}</td>
+                    <td id="stat-${i}" class="status-pending">Wait..</td>
+                    <td id="del-${i}">-</td>
+                </tr>`;
             });
 
-            document.getElementById('vlessOutput').value = yaml;
-            document.getElementById('resultBox').style.display = 'block';
+            // Pecah menjadi grup berisi 10 proxy sesuai batasan API Anda
+            for (let i = 0; i < allProxiesFlat.length; i += 10) {
+                const chunk = allProxiesFlat.slice(i, i + 10);
+                const ips = chunk.map(x => x.ipPort).join(',');
+                try {
+                    const res = await fetch(`${apiUrl}?ip=${ips}`);
+                    const data = await res.json();
+                    const dataArr = Array.isArray(data) ? data : [data];
+                    
+                    dataArr.forEach(resObj => {
+                        // Cari proxy di tabel yang cocok dengan hasil
+                        const reqProxyFormat = `${resObj.proxy}:${resObj.port}`;
+                        const idx = allProxiesFlat.findIndex(x => {
+                            // Antisipasi jika API memotong IP:Port
+                            const full = x.ipPort.includes(':') ? x.ipPort : x.ipPort + ':443';
+                            return full === reqProxyFormat;
+                        });
+
+                        if(idx !== -1) {
+                            const statTd = document.getElementById(`stat-${idx}`);
+                            if(resObj.proxyip) {
+                                statTd.textContent = 'Aktif'; statTd.className = 'status-aktif';
+                            } else {
+                                statTd.textContent = 'Mati'; statTd.className = 'status-mati';
+                            }
+                            document.getElementById(`del-${idx}`).textContent = resObj.delay || '-';
+                        }
+                    });
+                } catch (error) {
+                    chunk.forEach(p => {
+                        const idx = allProxiesFlat.findIndex(x => x.ipPort === p.ipPort);
+                        document.getElementById(`stat-${idx}`).textContent = 'Error';
+                        document.getElementById(`stat-${idx}`).className = 'status-mati';
+                    });
+                }
+            }
+            btn.disabled = false;
+            btn.textContent = "Mulai Cek Semua Proxy";
         }
 
         function copyToClipboard() {
-            const out = document.getElementById('vlessOutput');
-            out.select();
-            navigator.clipboard.writeText(out.value);
-            alert("Salin Berhasil!");
+            const out = document.getElementById('vlessOutput'); out.select(); navigator.clipboard.writeText(out.value); alert("Salin Berhasil!");
         }
     </script>
 </body>
