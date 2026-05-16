@@ -239,7 +239,12 @@
             if (!path) return alert("Pilih proxy!");
             if (!addr) return alert("Address tidak boleh kosong!");
             
-            const link = buildVlessLink(document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text);
+            // Nama di ambil dari "ID-Provider"
+            const country = document.getElementById('countrySelect').value;
+            const providerName = document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text;
+            const fullName = `${country}-${providerName}`;
+
+            const link = buildVlessLink(document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, fullName);
             document.getElementById('vlessOutput').value = link; document.getElementById('resultBox').style.display = 'block';
         }
 
@@ -256,7 +261,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // FULL CLASH CONFIG GENERATOR (SMART LOGIC)
+        // FULL CLASH CONFIG GENERATOR (DIKEMAS KINI - LOGIK NAMA DIBETULKAN)
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -267,10 +272,16 @@
 
             links.forEach(link => {
                 try {
+                    link = link.trim();
                     if(!link.startsWith('vless://')) return;
-                    const url = new URL(link.replace('#', '?remark=')); 
+                    
+                    const url = new URL(link); 
                     const params = new URLSearchParams(url.search);
-                    const remark = decodeURIComponent(params.get('remark') || 'Proxy');
+                    
+                    // Bacaan nama proxy dibetulkan menggunakan url.hash
+                    let remark = decodeURIComponent(url.hash.substring(1)).trim();
+                    if (!remark) remark = 'Proxy';
+                    
                     const sniVal = params.get('sni') || '';
                     const hostVal = params.get('host') || sniVal;
 
@@ -297,8 +308,9 @@
     ws-opts:
       path: ${decodeURIComponent(params.get('path') || '/')}
       headers:
-        Host: ${hostVal}`);
-                } catch(e) {}
+        Host: ${hostVal}
+    udp: true`);
+                } catch(e) { console.error(e); }
             });
 
             if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
