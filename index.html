@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLESS & Clash Tool</title>
+    <title>VLESS & Full Clash Config Tool</title>
     <style>
         :root { 
             --bg-color: #0f172a; --container-bg: #1e293b; --text-color: #f8fafc; 
@@ -42,7 +42,6 @@
         .result-box { margin-top: 25px; display: none; }
         .output-area { width: 100%; height: 180px; background-color: #000; color: #0f0; font-size: 11px; margin-top: 10px; }
         
-        /* Table Styles */
         .table-container { width: 100%; max-height: 300px; overflow-y: auto; margin-top: 15px; border-radius: 6px; border: 1px solid var(--border-color); }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
@@ -51,7 +50,6 @@
         .status-mati { color: var(--clash-color); font-weight: bold; }
         .status-pending { color: var(--text-color); font-style: italic; }
 
-        /* Footer Credit */
         .footer-credit { margin-top: 20px; font-size: 13px; color: #94a3b8; text-align: center; }
         .footer-credit span { color: var(--primary-color); font-weight: bold; letter-spacing: 1px; }
     </style>
@@ -113,10 +111,13 @@
 
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
-                <h4>🛠 Clash Converter</h4>
-                <textarea id="clashInput" placeholder="Paste link vless:// disini" style="height: 100px;"></textarea>
+                <h4>🛠 Full Clash Config Generator</h4>
+                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
+                    Paste kumpulan link VLESS, alat ini akan otomatis merakitnya menjadi file YAML utuh dengan aturan Load Balance & Auto!
+                </p>
+                <textarea id="clashInput" placeholder="vless://xxxx&#10;vless://yyyy" style="height: 100px;"></textarea>
             </div>
-            <button class="btn-clash" onclick="convertToClash()">Convert ke Clash YAML</button>
+            <button class="btn-clash" onclick="convertToClash()">Buat Full Config YAML</button>
         </div>
 
         <div id="checker" class="tab-content">
@@ -127,7 +128,6 @@
                     <input type="text" id="apiUrl" placeholder="https://api-kamu.vercel.app/api/check" value="https://checkerproxy.vercel.app/api/check">
                 </div>
                 <button class="btn-check" id="btnMulaiCek" onclick="runChecker()">Mulai Cek Semua Proxy</button>
-                
                 <div class="table-container">
                     <table>
                         <thead>
@@ -161,7 +161,6 @@
         let proxyData = {};
         let allProxiesFlat = [];
 
-        // Tab Switching Logic
         function openTab(evt, tabName) {
             let i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -174,7 +173,6 @@
             evt.currentTarget.classList.add("active");
             document.getElementById('resultBox').style.display = 'none';
 
-            // Hide shared inputs for Convert and Checker tabs
             if (tabName === 'convert' || tabName === 'checker') {
                 document.getElementById('sharedInputs').style.display = 'none';
             } else {
@@ -183,13 +181,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Standar UUID V4 Variant 1
             document.getElementById('uuid').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
                 const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); 
                 return v.toString(16);
             });
 
-            // Fetch prolist.txt
             fetch('prolist.txt').then(res => res.text()).then(text => {
                 const lines = text.split('\n');
                 let currentCountry = '';
@@ -209,7 +205,6 @@
             });
         });
 
-        // Populate Dropdowns
         function populateUi() {
             const countrySel = document.getElementById('countrySelect');
             countrySel.innerHTML = '<option value="">-- Pilih Negara --</option>';
@@ -261,12 +256,16 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // CMFA COMPATIBLE CLASH CONVERTER
+        // FULL CLASH CONFIG GENERATOR (SMART LOGIC)
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
-            let yaml = "proxies:\n";
-            input.split('\n').forEach(link => {
+            
+            const links = input.split('\n');
+            let proxiesList = [];
+            let countriesGroup = {};
+
+            links.forEach(link => {
                 try {
                     if(!link.startsWith('vless://')) return;
                     const url = new URL(link.replace('#', '?remark=')); 
@@ -274,28 +273,76 @@
                     const remark = decodeURIComponent(params.get('remark') || 'Proxy');
                     const sniVal = params.get('sni') || '';
                     const hostVal = params.get('host') || sniVal;
+
+                    // Ekstrak Negara dari Nama (Misal: "ID-Amazon" -> "ID")
+                    let country = "GLOBAL";
+                    if (remark.includes('-')) {
+                        country = remark.split('-')[0].trim().toUpperCase();
+                        if (country.length > 3) country = "GLOBAL";
+                    }
+
+                    if (!countriesGroup[country]) countriesGroup[country] = [];
+                    countriesGroup[country].push(remark);
                     
-                    yaml += `  - name: ${remark}\n`;
-                    yaml += `    server: ${url.hostname}\n`;
-                    yaml += `    port: ${url.port || 443}\n`;
-                    yaml += `    type: vless\n`;
-                    yaml += `    uuid: ${url.username}\n`;
-                    yaml += `    cipher: none\n`;
-                    yaml += `    tls: true\n`;
-                    yaml += `    skip-cert-verify: true\n`;
-                    yaml += `    servername: ${sniVal}\n`;
-                    yaml += `    network: ws\n`;
-                    yaml += `    ws-opts:\n`;
-                    yaml += `      path: ${decodeURIComponent(params.get('path') || '/')}\n`;
-                    yaml += `      headers:\n`;
-                    yaml += `        Host: ${hostVal}\n`;
-                    yaml += `    udp: true\n`;
+                    proxiesList.push(`  - name: "${remark}"
+    type: vless
+    server: ${url.hostname}
+    port: ${url.port || 443}
+    uuid: ${url.username}
+    cipher: none
+    tls: true
+    skip-cert-verify: true
+    servername: ${sniVal}
+    network: ws
+    ws-opts:
+      path: ${decodeURIComponent(params.get('path') || '/')}
+      headers:
+        Host: ${hostVal}`);
                 } catch(e) {}
             });
+
+            if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
+
+            // Kamus Emoji Bendera
+            const flags = { 'ID': '🇮🇩', 'SG': '🇸🇬', 'US': '🇺🇸', 'MY': '🇲🇾', 'JP': '🇯🇵', 'HK': '🇭🇰', 'GB': '🇬🇧' };
+
+            // Susun Header YAML
+            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
+            
+            yaml += proxiesList.join('\n\n') + '\n\n';
+            yaml += `proxy-groups:\n`;
+
+            let balanceGroups = [];
+            let autoGroups = [];
+
+            // Susun Grup per Negara (AUTO & BALANCE)
+            Object.keys(countriesGroup).forEach(c => {
+                const cProxies = countriesGroup[c].map(p => `      - "${p}"`).join('\n');
+                const flag = flags[c] || '🏳️';
+
+                yaml += `  # ================= ${c} =================\n`;
+                yaml += `  - name: ${flag} ${c}-AUTO\n    type: url-test\n    url: http://www.gstatic.com/generate_204\n    interval: 300\n    proxies:\n${cProxies}\n\n`;
+                yaml += `  - name: ${flag} ${c}-BALANCE\n    type: load-balance\n    strategy: round-robin\n    proxies:\n${cProxies}\n\n`;
+
+                balanceGroups.push(`      - ${flag} ${c}-BALANCE`);
+                autoGroups.push(`      - ${flag} ${c}-AUTO`);
+            });
+
+            // Susun Grup MIX & SELECT
+            yaml += `  # ================= MIX =================\n`;
+            yaml += `  - name: ⚖️ AUTO-MIX\n    type: load-balance\n    strategy: round-robin\n    proxies:\n${balanceGroups.join('\n')}\n\n`;
+            yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - ⚖️ AUTO-MIX\n${autoGroups.join('\n')}\n      - DIRECT\n\n`;
+
+            // Setup Default Rule (SG > ID > Mix)
+            let idAuto = autoGroups.find(g => g.includes('ID-AUTO')) ? '🇮🇩 ID-AUTO' : '🚀 SELECT';
+            let sgAuto = autoGroups.find(g => g.includes('SG-AUTO')) ? '🇸🇬 SG-AUTO' : '🚀 SELECT';
+
+            // Susun Aturan (Rules)
+            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Indonesia → ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Default Global\n  - MATCH,${sgAuto.replace('      - ', '')}\n`;
+
             document.getElementById('vlessOutput').value = yaml; document.getElementById('resultBox').style.display = 'block';
         }
 
-        // LIVE PROXY CHECKER
         async function runChecker() {
             const apiUrl = document.getElementById('apiUrl').value.trim();
             if(!apiUrl) return alert("Harap isi URL API Vercel Anda terlebih dahulu!");
