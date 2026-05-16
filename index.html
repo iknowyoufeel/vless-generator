@@ -91,20 +91,14 @@
                     <div class="form-group"><label>Provider</label><select id="proxySelect" disabled><option>Pilih Negara</option></select></div>
                 </div>
             </div>
-            <div class="form-group">
-                <label>SNI</label>
-                <input type="text" id="sni" placeholder="Isi Bug Jika Mode SNI" value="">
-            </div>
+            <div class="form-group"><label>SNI</label><input type="text" id="sni" placeholder="Isi Bug Jika Mode SNI" value=""></div>
             <button onclick="generateSingle()">Buat Satu Link</button>
         </div>
 
         <div id="sublink" class="tab-content">
             <div class="section-box" style="border-color: var(--accent-color);">
                 <h4>🚀 Bulk Generator</h4>
-                <div class="form-group">
-                    <label>SNI untuk Semua</label>
-                    <input type="text" id="sublinkBug" placeholder="Isi Bug Jika Mode SNI" value="">
-                </div>
+                <div class="form-group"><label>SNI untuk Semua</label><input type="text" id="sublinkBug" placeholder="Isi Bug Jika Mode SNI" value=""></div>
             </div>
             <button class="btn-sublink" onclick="generateAllSublinks()">Buat Semua Sublink</button>
         </div>
@@ -112,9 +106,6 @@
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
                 <h4>🛠 Clash Config Generator</h4>
-                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
-                    Paste link VLESS di sini. Jika 1 link = Normal Config. Jika banyak link = Auto Load Balance.
-                </p>
                 <textarea id="clashInput" placeholder="vless://xxxx&#10;vless://yyyy" style="height: 100px;"></textarea>
             </div>
             <button class="btn-clash" onclick="convertToClash()">Buat Config YAML</button>
@@ -123,24 +114,12 @@
         <div id="checker" class="tab-content">
             <div class="section-box" style="border-color: var(--warning-color);">
                 <h4>🔍 Live Proxy Checker</h4>
-                <div class="form-group">
-                    <label>URL API Vercel Anda</label>
-                    <input type="text" id="apiUrl" placeholder="https://api-kamu.vercel.app/api/check" value="https://checkerproxy.vercel.app/api/check">
-                </div>
+                <div class="form-group"><label>URL API Vercel Anda</label><input type="text" id="apiUrl" value="https://checkerproxy.vercel.app/api/check"></div>
                 <button class="btn-check" id="btnMulaiCek" onclick="runChecker()">Mulai Cek Semua Proxy</button>
                 <div class="table-container">
                     <table>
-                        <thead>
-                            <tr>
-                                <th>Prov/Negara</th>
-                                <th>IP:Port</th>
-                                <th>Status</th>
-                                <th>Delay</th>
-                            </tr>
-                        </thead>
-                        <tbody id="checkerBody">
-                            <tr><td colspan="4" style="text-align:center;">Tekan tombol untuk memulai</td></tr>
-                        </tbody>
+                        <thead><tr><th>Prov/Negara</th><th>IP:Port</th><th>Status</th><th>Delay</th></tr></thead>
+                        <tbody id="checkerBody"><tr><td colspan="4" style="text-align:center;">Tekan tombol untuk memulai</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -153,9 +132,7 @@
         </div>
     </div>
 
-    <div class="footer-credit">
-        Created by <span>Orionx</span>
-    </div>
+    <div class="footer-credit">Created by <span>Orionx</span></div>
 
     <script>
         let proxyData = {};
@@ -165,14 +142,11 @@
             let i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
             for (i = 0; i < tabcontent.length; i++) tabcontent[i].classList.remove("active");
-            
             tablinks = document.getElementsByClassName("tab-btn");
             for (i = 0; i < tablinks.length; i++) tablinks[i].classList.remove("active");
-            
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
             document.getElementById('resultBox').style.display = 'none';
-
             if (tabName === 'convert' || tabName === 'checker') {
                 document.getElementById('sharedInputs').style.display = 'none';
             } else {
@@ -235,15 +209,11 @@
             const path = document.getElementById('proxySelect').value;
             const addr = document.getElementById('address').value.trim();
             const sni = document.getElementById('sni').value.trim();
-            
             if (!path) return alert("Pilih proxy!");
             if (!addr) return alert("Address tidak boleh kosong!");
-            
             const country = document.getElementById('countrySelect').value;
             const providerName = document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text;
-            const fullName = `${country}-${providerName}`;
-
-            const link = buildVlessLink(document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, fullName);
+            const link = buildVlessLink(document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, `${country}-${providerName}`);
             document.getElementById('vlessOutput').value = link; document.getElementById('resultBox').style.display = 'block';
         }
 
@@ -253,14 +223,12 @@
             const addr = document.getElementById('address').value.trim();
             const port = document.getElementById('port').value;
             const bug = document.getElementById('sublinkBug').value.trim();
-            
             if (!addr) return alert("Address tidak boleh kosong!");
-
             allProxiesFlat.forEach(p => { res.push(buildVlessLink(uuid, addr, port, p.ipPort, bug, `${p.country}-${p.name}`)); });
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // DYNAMIC CLASH CONFIG GENERATOR (BYPASS WHATSAPP & FCM PUSH NOTIF)
+        // FULL CLASH CONFIG GENERATOR DENGAN SNIFFER DAN REDIR-HOST
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -273,13 +241,9 @@
                 try {
                     link = link.trim();
                     if(!link.startsWith('vless://')) return;
-                    
                     const url = new URL(link); 
                     const params = new URLSearchParams(url.search);
-                    
-                    let remark = decodeURIComponent(url.hash.substring(1)).trim();
-                    if (!remark) remark = 'Proxy';
-                    
+                    let remark = decodeURIComponent(url.hash.substring(1)).trim() || 'Proxy';
                     const sniVal = params.get('sni') || '';
                     const hostVal = params.get('host') || sniVal;
 
@@ -307,13 +271,13 @@
       headers:
         Host: ${hostVal}
     udp: true`);
-                } catch(e) { console.error(e); }
+                } catch(e) {}
             });
 
             if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
 
-            // Menambahkan fake-ip-filter untuk DNS Push Notification
-            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  fake-ip-filter:\n    - '+.whatsapp.com'\n    - '+.whatsapp.net'\n    - '+.google.com'\n    - '+.googleapis.com'\n    - 'mtalk.google.com'\n    - 'alt*.mtalk.google.com'\n    - 'android.clients.google.com'\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
+            // Fitur Sniffer dihidupkan, dan enhanced-mode diubah ke redir-host (Real IP)
+            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\nsniffer:\n  enable: true\n  sniff:\n    tls:\n      ports: [443, 8443]\n    http:\n      ports: [80, 8080-8880]\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: redir-host\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
             
             yaml += proxiesList.join('\n\n') + '\n\n';
             yaml += `proxy-groups:\n`;
@@ -321,10 +285,7 @@
             if (proxiesList.length === 1) {
                 let singleName = Object.values(countriesGroup)[0][0];
                 yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - "${singleName}"\n      - DIRECT\n\n`;
-                
-                // Aturan Bypass DIRECT (WhatsApp & FCM) untuk 1 proxy
-                yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.com,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.net,DIRECT\n  - DOMAIN-KEYWORD,whatsapp,DIRECT\n  - DOMAIN-SUFFIX,mtalk.google.com,DIRECT\n  - DOMAIN-SUFFIX,android.clients.google.com,DIRECT\n  - DOMAIN-SUFFIX,googleapis.com,DIRECT\n  - MATCH,🚀 SELECT\n`;
-                
+                yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.com,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.net,DIRECT\n  - DOMAIN-KEYWORD,whatsapp,DIRECT\n  - DOMAIN-SUFFIX,mtalk.google.com,DIRECT\n  - DOMAIN-SUFFIX,googleapis.com,DIRECT\n  - MATCH,🚀 SELECT\n`;
                 document.getElementById('vlessOutput').value = yaml; 
                 document.getElementById('resultBox').style.display = 'block';
                 return;
@@ -352,7 +313,6 @@
 
             let idAuto = autoGroups.find(g => g.includes('ID-AUTO')) ? '🇮🇩 ID-AUTO' : '🚀 SELECT';
 
-            // Aturan Bypass DIRECT (WhatsApp & FCM) untuk banyak proxy
             yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Bypass Notifikasi WhatsApp & Google FCM\n  - DOMAIN-SUFFIX,whatsapp.com,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.net,DIRECT\n  - DOMAIN-KEYWORD,whatsapp,DIRECT\n  - DOMAIN-SUFFIX,mtalk.google.com,DIRECT\n  - DOMAIN-SUFFIX,android.clients.google.com,DIRECT\n  - DOMAIN-SUFFIX,googleapis.com,DIRECT\n\n  # Routing Web Lokal ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Routing Internet Global\n  - MATCH,🚀 SELECT\n`;
 
             document.getElementById('vlessOutput').value = yaml; 
