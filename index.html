@@ -260,7 +260,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // DYNAMIC CLASH CONFIG GENERATOR DENGAN FAKE-IP-FILTER
+        // DYNAMIC CLASH CONFIG GENERATOR (BYPASS WHATSAPP & FCM PUSH NOTIF)
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -312,8 +312,8 @@
 
             if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
 
-            // Menambahkan fake-ip-filter agar Notifikasi WhatsApp & Google lancar
-            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  fake-ip-filter:\n    - '+.whatsapp.com'\n    - '+.whatsapp.net'\n    - '+.google.com'\n    - 'mtalk.google.com'\n    - 'alt*.mtalk.google.com'\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
+            // Menambahkan fake-ip-filter untuk DNS Push Notification
+            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  fake-ip-filter:\n    - '+.whatsapp.com'\n    - '+.whatsapp.net'\n    - '+.google.com'\n    - '+.googleapis.com'\n    - 'mtalk.google.com'\n    - 'alt*.mtalk.google.com'\n    - 'android.clients.google.com'\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
             
             yaml += proxiesList.join('\n\n') + '\n\n';
             yaml += `proxy-groups:\n`;
@@ -321,7 +321,9 @@
             if (proxiesList.length === 1) {
                 let singleName = Object.values(countriesGroup)[0][0];
                 yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - "${singleName}"\n      - DIRECT\n\n`;
-                yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n  - MATCH,🚀 SELECT\n`;
+                
+                // Aturan Bypass DIRECT (WhatsApp & FCM) untuk 1 proxy
+                yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.com,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.net,DIRECT\n  - DOMAIN-KEYWORD,whatsapp,DIRECT\n  - DOMAIN-SUFFIX,mtalk.google.com,DIRECT\n  - DOMAIN-SUFFIX,android.clients.google.com,DIRECT\n  - DOMAIN-SUFFIX,googleapis.com,DIRECT\n  - MATCH,🚀 SELECT\n`;
                 
                 document.getElementById('vlessOutput').value = yaml; 
                 document.getElementById('resultBox').style.display = 'block';
@@ -350,7 +352,8 @@
 
             let idAuto = autoGroups.find(g => g.includes('ID-AUTO')) ? '🇮🇩 ID-AUTO' : '🚀 SELECT';
 
-            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Routing Web Lokal ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Routing Internet Global\n  - MATCH,🚀 SELECT\n`;
+            // Aturan Bypass DIRECT (WhatsApp & FCM) untuk banyak proxy
+            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Bypass Notifikasi WhatsApp & Google FCM\n  - DOMAIN-SUFFIX,whatsapp.com,DIRECT\n  - DOMAIN-SUFFIX,whatsapp.net,DIRECT\n  - DOMAIN-KEYWORD,whatsapp,DIRECT\n  - DOMAIN-SUFFIX,mtalk.google.com,DIRECT\n  - DOMAIN-SUFFIX,android.clients.google.com,DIRECT\n  - DOMAIN-SUFFIX,googleapis.com,DIRECT\n\n  # Routing Web Lokal ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Routing Internet Global\n  - MATCH,🚀 SELECT\n`;
 
             document.getElementById('vlessOutput').value = yaml; 
             document.getElementById('resultBox').style.display = 'block';
