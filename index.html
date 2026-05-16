@@ -260,7 +260,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // DYNAMIC CLASH CONFIG GENERATOR
+        // DYNAMIC CLASH CONFIG GENERATOR DENGAN FAKE-IP-FILTER
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -312,7 +312,8 @@
 
             if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
 
-            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
+            // Menambahkan fake-ip-filter agar Notifikasi WhatsApp & Google lancar
+            let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  fake-ip-filter:\n    - '+.whatsapp.com'\n    - '+.whatsapp.net'\n    - '+.google.com'\n    - 'mtalk.google.com'\n    - 'alt*.mtalk.google.com'\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
             
             yaml += proxiesList.join('\n\n') + '\n\n';
             yaml += `proxy-groups:\n`;
@@ -349,8 +350,7 @@
 
             let idAuto = autoGroups.find(g => g.includes('ID-AUTO')) ? '🇮🇩 ID-AUTO' : '🚀 SELECT';
 
-            // PERUBAHAN UTAMA ADA DI SINI: MATCH diarahkan ke 🚀 SELECT
-            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Routing Web Lokal ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Routing Internet Global (Sesuai Pilihan Anda)\n  - MATCH,🚀 SELECT\n`;
+            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Routing Web Lokal ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Routing Internet Global\n  - MATCH,🚀 SELECT\n`;
 
             document.getElementById('vlessOutput').value = yaml; 
             document.getElementById('resultBox').style.display = 'block';
