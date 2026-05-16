@@ -111,13 +111,13 @@
 
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
-                <h4>🛠 Full Clash Config Generator</h4>
+                <h4>🛠 Clash Config Generator</h4>
                 <p style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
-                    Paste kumpulan link VLESS, alat ini akan otomatis merakitnya menjadi file YAML utuh dengan aturan Load Balance & Auto!
+                    Paste link VLESS di sini. Jika 1 link = Normal Config. Jika banyak link = Auto Load Balance.
                 </p>
                 <textarea id="clashInput" placeholder="vless://xxxx&#10;vless://yyyy" style="height: 100px;"></textarea>
             </div>
-            <button class="btn-clash" onclick="convertToClash()">Buat Full Config YAML</button>
+            <button class="btn-clash" onclick="convertToClash()">Buat Config YAML</button>
         </div>
 
         <div id="checker" class="tab-content">
@@ -239,7 +239,6 @@
             if (!path) return alert("Pilih proxy!");
             if (!addr) return alert("Address tidak boleh kosong!");
             
-            // Nama di ambil dari "ID-Provider"
             const country = document.getElementById('countrySelect').value;
             const providerName = document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text;
             const fullName = `${country}-${providerName}`;
@@ -261,7 +260,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // FULL CLASH CONFIG GENERATOR (DIKEMAS KINI - LOGIK NAMA DIBETULKAN)
+        // DYNAMIC CLASH CONFIG GENERATOR
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS dulu!");
@@ -278,14 +277,12 @@
                     const url = new URL(link); 
                     const params = new URLSearchParams(url.search);
                     
-                    // Bacaan nama proxy dibetulkan menggunakan url.hash
                     let remark = decodeURIComponent(url.hash.substring(1)).trim();
                     if (!remark) remark = 'Proxy';
                     
                     const sniVal = params.get('sni') || '';
                     const hostVal = params.get('host') || sniVal;
 
-                    // Ekstrak Negara dari Nama (Misal: "ID-Amazon" -> "ID")
                     let country = "GLOBAL";
                     if (remark.includes('-')) {
                         country = remark.split('-')[0].trim().toUpperCase();
@@ -315,19 +312,27 @@
 
             if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
 
-            // Kamus Emoji Bendera
-            const flags = { 'ID': '🇮🇩', 'SG': '🇸🇬', 'US': '🇺🇸', 'MY': '🇲🇾', 'JP': '🇯🇵', 'HK': '🇭🇰', 'GB': '🇬🇧' };
-
-            // Susun Header YAML
             let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: fake-ip\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
             
             yaml += proxiesList.join('\n\n') + '\n\n';
             yaml += `proxy-groups:\n`;
 
+            // === LOGIKA JIKA HANYA 1 PROXY (KONFIG NORMAL) ===
+            if (proxiesList.length === 1) {
+                let singleName = Object.values(countriesGroup)[0][0]; // Ambil nama proxy
+                yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - "${singleName}"\n      - DIRECT\n\n`;
+                yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n  - MATCH,🚀 SELECT\n`;
+                
+                document.getElementById('vlessOutput').value = yaml; 
+                document.getElementById('resultBox').style.display = 'block';
+                return; // Stop script disini jika hanya 1 link
+            }
+
+            // === LOGIKA JIKA > 1 PROXY (KONFIG FULL / BALANCE) ===
+            const flags = { 'ID': '🇮🇩', 'SG': '🇸🇬', 'US': '🇺🇸', 'MY': '🇲🇾', 'JP': '🇯🇵', 'HK': '🇭🇰', 'GB': '🇬🇧' };
             let balanceGroups = [];
             let autoGroups = [];
 
-            // Susun Grup per Negara (AUTO & BALANCE)
             Object.keys(countriesGroup).forEach(c => {
                 const cProxies = countriesGroup[c].map(p => `      - "${p}"`).join('\n');
                 const flag = flags[c] || '🏳️';
@@ -340,19 +345,17 @@
                 autoGroups.push(`      - ${flag} ${c}-AUTO`);
             });
 
-            // Susun Grup MIX & SELECT
             yaml += `  # ================= MIX =================\n`;
             yaml += `  - name: ⚖️ AUTO-MIX\n    type: load-balance\n    strategy: round-robin\n    proxies:\n${balanceGroups.join('\n')}\n\n`;
             yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - ⚖️ AUTO-MIX\n${autoGroups.join('\n')}\n      - DIRECT\n\n`;
 
-            // Setup Default Rule (SG > ID > Mix)
             let idAuto = autoGroups.find(g => g.includes('ID-AUTO')) ? '🇮🇩 ID-AUTO' : '🚀 SELECT';
             let sgAuto = autoGroups.find(g => g.includes('SG-AUTO')) ? '🇸🇬 SG-AUTO' : '🚀 SELECT';
 
-            // Susun Aturan (Rules)
             yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Indonesia → ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Default Global\n  - MATCH,${sgAuto.replace('      - ', '')}\n`;
 
-            document.getElementById('vlessOutput').value = yaml; document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('vlessOutput').value = yaml; 
+            document.getElementById('resultBox').style.display = 'block';
         }
 
         async function runChecker() {
