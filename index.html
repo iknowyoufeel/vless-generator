@@ -317,18 +317,16 @@
             yaml += proxiesList.join('\n\n') + '\n\n';
             yaml += `proxy-groups:\n`;
 
-            // === LOGIKA JIKA HANYA 1 PROXY (KONFIG NORMAL) ===
             if (proxiesList.length === 1) {
-                let singleName = Object.values(countriesGroup)[0][0]; // Ambil nama proxy
+                let singleName = Object.values(countriesGroup)[0][0];
                 yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - "${singleName}"\n      - DIRECT\n\n`;
                 yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n  - MATCH,🚀 SELECT\n`;
                 
                 document.getElementById('vlessOutput').value = yaml; 
                 document.getElementById('resultBox').style.display = 'block';
-                return; // Stop script disini jika hanya 1 link
+                return;
             }
 
-            // === LOGIKA JIKA > 1 PROXY (KONFIG FULL / BALANCE) ===
             const flags = { 'ID': '🇮🇩', 'SG': '🇸🇬', 'US': '🇺🇸', 'MY': '🇲🇾', 'JP': '🇯🇵', 'HK': '🇭🇰', 'GB': '🇬🇧' };
             let balanceGroups = [];
             let autoGroups = [];
@@ -350,9 +348,9 @@
             yaml += `  - name: 🚀 SELECT\n    type: select\n    proxies:\n      - ⚖️ AUTO-MIX\n${autoGroups.join('\n')}\n      - DIRECT\n\n`;
 
             let idAuto = autoGroups.find(g => g.includes('ID-AUTO')) ? '🇮🇩 ID-AUTO' : '🚀 SELECT';
-            let sgAuto = autoGroups.find(g => g.includes('SG-AUTO')) ? '🇸🇬 SG-AUTO' : '🚀 SELECT';
 
-            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Indonesia → ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Default Global\n  - MATCH,${sgAuto.replace('      - ', '')}\n`;
+            // PERUBAHAN UTAMA ADA DI SINI: MATCH diarahkan ke 🚀 SELECT
+            yaml += `rules:\n  - IP-CIDR,127.0.0.0/8,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT\n  - IP-CIDR,172.16.0.0/12,DIRECT\n  - IP-CIDR,192.168.0.0/16,DIRECT\n\n  # Routing Web Lokal ID\n  - GEOIP,ID,${idAuto.replace('      - ', '')}\n\n  # Routing Internet Global (Sesuai Pilihan Anda)\n  - MATCH,🚀 SELECT\n`;
 
             document.getElementById('vlessOutput').value = yaml; 
             document.getElementById('resultBox').style.display = 'block';
