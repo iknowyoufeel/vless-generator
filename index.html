@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLESS & Full Clash Config Tool</title>
+    <title>VLESS & Trojan Web Tool</title>
     <style>
         :root { 
             --bg-color: #0f172a; --container-bg: #1e293b; --text-color: #f8fafc; 
@@ -57,7 +57,7 @@
 <body>
 
     <div class="container">
-        <h2>VLESS Web Tool</h2>
+        <h2>VPN Config Web Tool</h2>
 
         <div class="tabs">
             <button class="tab-btn active" onclick="openTab(event, 'single')">Single</button>
@@ -67,9 +67,18 @@
         </div>
 
         <div id="sharedInputs">
-            <div class="form-group">
-                <label>User UUID</label>
-                <input type="text" id="uuid" placeholder="Loading...">
+            <div class="row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Protocol</label>
+                    <select id="protocol">
+                        <option value="vless">VLESS</option>
+                        <option value="trojan">Trojan</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 2;">
+                    <label>UUID / Password</label>
+                    <input type="text" id="uuid" placeholder="Loading...">
+                </div>
             </div>
             <div class="row">
                 <div class="form-group" style="flex: 2;">
@@ -91,14 +100,20 @@
                     <div class="form-group"><label>Provider</label><select id="proxySelect" disabled><option>Pilih Negara</option></select></div>
                 </div>
             </div>
-            <div class="form-group"><label>SNI</label><input type="text" id="sni" placeholder="Isi Bug Jika Mode SNI" value=""></div>
+            <div class="form-group">
+                <label>SNI</label>
+                <input type="text" id="sni" placeholder="Isi Bug Jika Mode SNI" value="">
+            </div>
             <button onclick="generateSingle()">Buat Satu Link</button>
         </div>
 
         <div id="sublink" class="tab-content">
             <div class="section-box" style="border-color: var(--accent-color);">
                 <h4>🚀 Bulk Generator</h4>
-                <div class="form-group"><label>SNI untuk Semua</label><input type="text" id="sublinkBug" placeholder="Isi Bug Jika Mode SNI" value=""></div>
+                <div class="form-group">
+                    <label>SNI untuk Semua</label>
+                    <input type="text" id="sublinkBug" placeholder="Isi Bug Jika Mode SNI" value="">
+                </div>
             </div>
             <button class="btn-sublink" onclick="generateAllSublinks()">Buat Semua Sublink</button>
         </div>
@@ -106,7 +121,10 @@
         <div id="convert" class="tab-content">
             <div class="section-box" style="border-color: var(--clash-color);">
                 <h4>🛠 Clash Config Generator</h4>
-                <textarea id="clashInput" placeholder="vless://xxxx&#10;vless://yyyy" style="height: 100px;"></textarea>
+                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
+                    Paste link VLESS atau Trojan di sini. Jika 1 link = Normal Config. Jika banyak link = Auto Load Balance.
+                </p>
+                <textarea id="clashInput" placeholder="vless://... atau trojan://..." style="height: 100px;"></textarea>
             </div>
             <button class="btn-clash" onclick="convertToClash()">Buat Config YAML</button>
         </div>
@@ -114,12 +132,24 @@
         <div id="checker" class="tab-content">
             <div class="section-box" style="border-color: var(--warning-color);">
                 <h4>🔍 Live Proxy Checker</h4>
-                <div class="form-group"><label>URL API Vercel Anda</label><input type="text" id="apiUrl" value="https://checkerproxy.vercel.app/api/check"></div>
+                <div class="form-group">
+                    <label>URL API Vercel Anda</label>
+                    <input type="text" id="apiUrl" placeholder="https://api-kamu.vercel.app/api/check" value="https://checkerproxy.vercel.app/api/check">
+                </div>
                 <button class="btn-check" id="btnMulaiCek" onclick="runChecker()">Mulai Cek Semua Proxy</button>
                 <div class="table-container">
                     <table>
-                        <thead><tr><th>Prov/Negara</th><th>IP:Port</th><th>Status</th><th>Delay</th></tr></thead>
-                        <tbody id="checkerBody"><tr><td colspan="4" style="text-align:center;">Tekan tombol untuk memulai</td></tr></tbody>
+                        <thead>
+                            <tr>
+                                <th>Prov/Negara</th>
+                                <th>IP:Port</th>
+                                <th>Status</th>
+                                <th>Delay</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checkerBody">
+                            <tr><td colspan="4" style="text-align:center;">Tekan tombol untuk memulai</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -132,7 +162,9 @@
         </div>
     </div>
 
-    <div class="footer-credit">Created by <span>Orionx</span></div>
+    <div class="footer-credit">
+        Created by <span>Orionx</span>
+    </div>
 
     <script>
         let proxyData = {};
@@ -142,11 +174,14 @@
             let i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
             for (i = 0; i < tabcontent.length; i++) tabcontent[i].classList.remove("active");
+            
             tablinks = document.getElementsByClassName("tab-btn");
             for (i = 0; i < tablinks.length; i++) tablinks[i].classList.remove("active");
+            
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
             document.getElementById('resultBox').style.display = 'none';
+
             if (tabName === 'convert' || tabName === 'checker') {
                 document.getElementById('sharedInputs').style.display = 'none';
             } else {
@@ -201,37 +236,46 @@
             };
         }
 
-        function buildVlessLink(uuid, addr, port, path, bug, name) {
-            return `vless://${uuid}@${addr}:${port}?type=ws&security=tls&path=${encodeURIComponent('/'+path)}&sni=${bug}&host=${bug}#${encodeURIComponent(name)}`;
+        // Dukungan VLESS dan Trojan
+        function buildProxyLink(protocol, uuid, addr, port, path, bug, name) {
+            return `${protocol}://${uuid}@${addr}:${port}?type=ws&security=tls&path=${encodeURIComponent('/'+path)}&sni=${bug}&host=${bug}#${encodeURIComponent(name)}`;
         }
 
         function generateSingle() {
+            const protocol = document.getElementById('protocol').value;
             const path = document.getElementById('proxySelect').value;
             const addr = document.getElementById('address').value.trim();
             const sni = document.getElementById('sni').value.trim();
+            
             if (!path) return alert("Pilih proxy!");
             if (!addr) return alert("Address tidak boleh kosong!");
+            
             const country = document.getElementById('countrySelect').value;
             const providerName = document.getElementById('proxySelect').options[document.getElementById('proxySelect').selectedIndex].text;
-            const link = buildVlessLink(document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, `${country}-${providerName}`);
+            const fullName = `${country}-${providerName}`;
+
+            const link = buildProxyLink(protocol, document.getElementById('uuid').value, addr, document.getElementById('port').value, path, sni, fullName);
             document.getElementById('vlessOutput').value = link; document.getElementById('resultBox').style.display = 'block';
         }
 
         function generateAllSublinks() {
             let res = [];
+            const protocol = document.getElementById('protocol').value;
             const uuid = document.getElementById('uuid').value;
             const addr = document.getElementById('address').value.trim();
             const port = document.getElementById('port').value;
             const bug = document.getElementById('sublinkBug').value.trim();
+            
             if (!addr) return alert("Address tidak boleh kosong!");
-            allProxiesFlat.forEach(p => { res.push(buildVlessLink(uuid, addr, port, p.ipPort, bug, `${p.country}-${p.name}`)); });
+
+            allProxiesFlat.forEach(p => { res.push(buildProxyLink(protocol, uuid, addr, port, p.ipPort, bug, `${p.country}-${p.name}`)); });
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // FULL CLASH CONFIG GENERATOR DENGAN SNIFFER DAN REDIR-HOST
+        // DYNAMIC CLASH CONFIG GENERATOR (SUPPORT VLESS & TROJAN)
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
-            if(!input) return alert("Paste link VLESS dulu!");
+            if(!input) return alert("Paste link VLESS atau Trojan dulu!");
             
             const links = input.split('\n');
             let proxiesList = [];
@@ -240,10 +284,15 @@
             links.forEach(link => {
                 try {
                     link = link.trim();
-                    if(!link.startsWith('vless://')) return;
+                    if(!link.startsWith('vless://') && !link.startsWith('trojan://')) return;
+                    
+                    const protocolType = link.split('://')[0]; // Mendapatkan 'vless' atau 'trojan'
                     const url = new URL(link); 
                     const params = new URLSearchParams(url.search);
-                    let remark = decodeURIComponent(url.hash.substring(1)).trim() || 'Proxy';
+                    
+                    let remark = decodeURIComponent(url.hash.substring(1)).trim();
+                    if (!remark) remark = 'Proxy';
+                    
                     const sniVal = params.get('sni') || '';
                     const hostVal = params.get('host') || sniVal;
 
@@ -256,11 +305,14 @@
                     if (!countriesGroup[country]) countriesGroup[country] = [];
                     countriesGroup[country].push(remark);
                     
+                    // Susunan YAML disesuaikan (UUID untuk vless, Password untuk trojan)
+                    let authField = protocolType === 'vless' ? `uuid: ${url.username}` : `password: ${url.username}`;
+
                     proxiesList.push(`  - name: "${remark}"
-    type: vless
+    type: ${protocolType}
     server: ${url.hostname}
     port: ${url.port || 443}
-    uuid: ${url.username}
+    ${authField}
     cipher: none
     tls: true
     skip-cert-verify: true
@@ -271,12 +323,12 @@
       headers:
         Host: ${hostVal}
     udp: true`);
-                } catch(e) {}
+                } catch(e) { console.error(e); }
             });
 
-            if (proxiesList.length === 0) return alert("Tidak ada link VLESS yang valid!");
+            if (proxiesList.length === 0) return alert("Tidak ada link yang valid!");
 
-            // Fitur Sniffer dihidupkan, dan enhanced-mode diubah ke redir-host (Real IP)
+            // Fitur Sniffer dan Bypass Real-IP Notifikasi
             let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\nsniffer:\n  enable: true\n  sniff:\n    tls:\n      ports: [443, 8443]\n    http:\n      ports: [80, 8080-8880]\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: redir-host\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
             
             yaml += proxiesList.join('\n\n') + '\n\n';
