@@ -236,7 +236,6 @@
             };
         }
 
-        // Dukungan VLESS dan Trojan
         function buildProxyLink(protocol, uuid, addr, port, path, bug, name) {
             return `${protocol}://${uuid}@${addr}:${port}?type=ws&security=tls&path=${encodeURIComponent('/'+path)}&sni=${bug}&host=${bug}#${encodeURIComponent(name)}`;
         }
@@ -272,7 +271,7 @@
             document.getElementById('vlessOutput').value = res.join('\n'); document.getElementById('resultBox').style.display = 'block';
         }
 
-        // DYNAMIC CLASH CONFIG GENERATOR (SUPPORT VLESS & TROJAN)
+        // DYNAMIC CLASH CONFIG GENERATOR (MEMISAHKAN LOGIKA VLESS DAN TROJAN)
         function convertToClash() {
             const input = document.getElementById('clashInput').value.trim();
             if(!input) return alert("Paste link VLESS atau Trojan dulu!");
@@ -286,7 +285,7 @@
                     link = link.trim();
                     if(!link.startsWith('vless://') && !link.startsWith('trojan://')) return;
                     
-                    const protocolType = link.split('://')[0]; // Mendapatkan 'vless' atau 'trojan'
+                    const protocolType = link.split('://')[0]; 
                     const url = new URL(link); 
                     const params = new URLSearchParams(url.search);
                     
@@ -305,18 +304,16 @@
                     if (!countriesGroup[country]) countriesGroup[country] = [];
                     countriesGroup[country].push(remark);
                     
-                    // Susunan YAML disesuaikan (UUID untuk vless, Password untuk trojan)
-                    let authField = protocolType === 'vless' ? `uuid: ${url.username}` : `password: ${url.username}`;
+                    // Logika Perbedaan VLESS dan Trojan pada YAML Clash
+                    let authField = protocolType === 'vless' ? `uuid: ${url.username}\n    cipher: none\n    tls: true` : `password: ${url.username}`;
 
                     proxiesList.push(`  - name: "${remark}"
     type: ${protocolType}
     server: ${url.hostname}
     port: ${url.port || 443}
     ${authField}
-    cipher: none
-    tls: true
     skip-cert-verify: true
-    servername: ${sniVal}
+    sni: ${sniVal}
     network: ws
     ws-opts:
       path: ${decodeURIComponent(params.get('path') || '/')}
@@ -328,7 +325,7 @@
 
             if (proxiesList.length === 0) return alert("Tidak ada link yang valid!");
 
-            // Fitur Sniffer dan Bypass Real-IP Notifikasi
+            // Fitur Sniffer dan Redir-Host untuk melancarkan notifikasi
             let yaml = `mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nipv6: false\n\nsniffer:\n  enable: true\n  sniff:\n    tls:\n      ports: [443, 8443]\n    http:\n      ports: [80, 8080-8880]\n\ndns:\n  enable: true\n  listen: 0.0.0.0:1053\n  enhanced-mode: redir-host\n  nameserver:\n    - 1.1.1.1\n    - 8.8.8.8\n\nproxies:\n`;
             
             yaml += proxiesList.join('\n\n') + '\n\n';
